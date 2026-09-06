@@ -30,7 +30,7 @@ The first account created becomes the only owner. Further sign-ups are rejected.
 
 ## Production (Vercel)
 
-- Set `DATABASE_URL` to your PostgreSQL connection string. The Vercel build runs `prisma db push` to create or update the database schema.
+- Set `DATABASE_URL` to the shared transaction pooler URL and `DIRECT_URL` to the session pooler URL. Run `npm run db:push` separately when the Prisma schema changes; the Vercel build does not modify the database.
 - Set all secrets in the Vercel project environment.
 - Large uploads use chunked requests; Telegram transfer still needs a Node.js runtime with enough `maxDuration`.
 - Virus scanning is a `VirusScanner` interface with a no-op placeholder (`src/services/virus-scanner.ts`).
