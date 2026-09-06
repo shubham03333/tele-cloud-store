@@ -20,8 +20,17 @@ export default function LoginPage() {
 
   useEffect(() => {
     void fetch("/api/setup")
-      .then((response) => response.json())
+      .then(async (response) => {
+        const data = (await response.json()) as { needsSetup?: boolean; error?: string };
+        if (!response.ok) {
+          throw new Error(data.error ?? "Unable to check setup status");
+        }
+        return data;
+      })
       .then((data) => setNeedsSetup(Boolean(data.needsSetup)))
+      .catch((setupError: unknown) => {
+        setError(setupError instanceof Error ? setupError.message : "Unable to check setup status");
+      })
       .finally(() => setReady(true));
   }, []);
 

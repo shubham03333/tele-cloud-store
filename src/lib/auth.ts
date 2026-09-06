@@ -13,7 +13,7 @@ export const auth = betterAuth({
   appName: "Nimbus Drive",
   baseURL: env.BETTER_AUTH_URL ?? env.NEXT_PUBLIC_APP_URL,
   secret: env.BETTER_AUTH_SECRET,
-  database: prismaAdapter(prisma, { provider: "sqlite" }),
+  database: prismaAdapter(prisma, { provider: "postgresql" }),
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 10,
@@ -41,7 +41,10 @@ export const auth = betterAuth({
       path: "/",
     },
   },
-  trustedOrigins: [env.NEXT_PUBLIC_APP_URL],
+  trustedOrigins: [
+    env.NEXT_PUBLIC_APP_URL,
+    ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
+  ],
   databaseHooks: {
     user: {
       create: {

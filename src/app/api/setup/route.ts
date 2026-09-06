@@ -10,6 +10,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
-  const count = await prisma.user.count();
-  return NextResponse.json({ needsSetup: count === 0, singleUser: true });
+  try {
+    const count = await prisma.user.count();
+    return NextResponse.json({ needsSetup: count === 0, singleUser: true });
+  } catch (error) {
+    console.error("Setup status check failed", error);
+    return NextResponse.json({ error: "Database is not ready" }, { status: 500 });
+  }
 }
