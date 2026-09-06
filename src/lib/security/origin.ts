@@ -14,8 +14,12 @@ export function assertSameOrigin(request: Request): void {
     throw new Error("Missing Origin header");
   }
 
-  const allowed = getEnv().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
-  if (origin.replace(/\/$/, "") !== allowed) {
+  const allowedOrigins = new Set([
+    getEnv().NEXT_PUBLIC_APP_URL.replace(/\/$/, ""),
+    ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
+    ...(process.env.VERCEL_PROJECT_PRODUCTION_URL ? [`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`] : []),
+  ]);
+  if (!allowedOrigins.has(origin.replace(/\/$/, ""))) {
     throw new Error("Invalid origin");
   }
 }
