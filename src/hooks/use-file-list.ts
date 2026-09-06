@@ -18,16 +18,6 @@ export function useFileList(params: {
   const [view, setView] = useState<"grid" | "list">("grid");
   const [sort, setSort] = useState("uploadedAt");
   const [order, setOrder] = useState("desc");
-  const searchKey = [
-    params.category ?? "",
-    params.folderId ?? "",
-    params.q ?? "",
-    params.favorite ? "1" : "0",
-    params.deleted ? "1" : "0",
-    sort,
-    order,
-  ].join(":");
-
   const load = useCallback(
     async (next?: string | null, replace = false) => {
       setLoading(true);
@@ -52,7 +42,7 @@ export function useFileList(params: {
       setHasMore(data.hasMore);
       setLoading(false);
     },
-    [searchKey, params.category, params.deleted, params.favorite, params.folderId, params.q, sort, order],
+    [params.category, params.deleted, params.favorite, params.folderId, params.q, sort, order],
   );
 
   useEffect(() => {
