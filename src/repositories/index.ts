@@ -140,6 +140,25 @@ export class UploadSessionRepository {
     return prisma.uploadSession.findUnique({ where: { id } });
   }
 
+  async saveChunk(sessionId: string, chunkIndex: number, data: Buffer) {
+    return prisma.uploadChunk.upsert({
+      where: { sessionId_chunkIndex: { sessionId, chunkIndex } },
+      create: { sessionId, chunkIndex, data },
+      update: { data },
+    });
+  }
+
+  async listChunks(sessionId: string) {
+    return prisma.uploadChunk.findMany({
+      where: { sessionId },
+      orderBy: { chunkIndex: "asc" },
+    });
+  }
+
+  async deleteChunks(sessionId: string) {
+    await prisma.uploadChunk.deleteMany({ where: { sessionId } });
+  }
+
   async update(
     id: string,
     data: {

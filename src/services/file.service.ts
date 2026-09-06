@@ -1,10 +1,8 @@
 import "server-only";
 
-import { createWriteStream } from "node:fs";
-import { mkdir } from "node:fs/promises";
+import { unlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
-import { pipeline } from "node:stream/promises";
-import { Readable } from "node:stream";
 import { FileRepository } from "@/repositories/file.repository";
 import { FolderRepository } from "@/repositories/folder.repository";
 import {
@@ -12,7 +10,7 @@ import {
   ChannelRepository,
   UploadSessionRepository,
 } from "@/repositories";
-import { TelegramStorageService, assembleChunks, removeUploadDir } from "@/services/telegram.service";
+import { TelegramStorageService } from "@/services/telegram.service";
 import type { VirusScanner } from "@/services/virus-scanner";
 import { inferCategory } from "@/lib/categories";
 import { sanitizeFilename } from "@/lib/security/sanitize";
@@ -74,8 +72,6 @@ export class FileService {
       throw new Error(`Bind a Telegram channel for ${category} before uploading`);
     }
 
-    const dir = path.join(process.cwd(), ".uploads");
-    await mkdir(dir, { recursive: true });
     const session = await this.uploads.create({
       filename,
       mimeType: input.mimeType,
@@ -87,9 +83,7 @@ export class FileService {
       tempPath: "",
     });
 
-    const tempPath = path.join(dir, session.id, "assembled.bin");
     await this.uploads.update(session.id, {});
-    await mkdir(path.join(dir, session.id), { recursive: true });
 
     await this.audit.write({
       userId: input.userId,
@@ -100,7 +94,7 @@ export class FileService {
       metadata: { filename, category, sizeBytes: input.sizeBytes },
     });
 
-    return { ...session, tempPath, category };
+    return { ...session, tempPath: "", category };
   }
 
   async appendChunk(sessionId: string, chunkIndex: number, data: Buffer) {
@@ -112,11 +106,10 @@ export class FileService {
       throw new Error("Upload is paused");
     }
 
-    const partPath = path.join(process.cwd(), ".uploads", sessionId, `${chunkIndex}.part`);
-    await mkdir(path.dirname(partPath), { recursive: true });
-    await pipeline(Readable.from(data), createWriteStream(partPath));
+    await this.uploads.saveChunk(sessionId, chunkIndex, data);
 
-    const received = session.receivedBytes + BigInt(data.length);
+    const chunks = await this.uploads.listChunks(sessionId);
+    const received = chunks.reduce((total, chunk) => total + BigInt(chunk.data.length), 0n);
     await this.uploads.update(sessionId, { receivedBytes: received, status: "active" });
     return { receivedBytes: received.toString(), sizeBytes: session.sizeBytes.toString() };
   }
@@ -131,7 +124,7 @@ export class FileService {
 
   async cancel(sessionId: string) {
     await this.uploads.update(sessionId, { status: "cancelled" });
-    await removeUploadDir(sessionId);
+    await this.uploads.deleteChunks(sessionId);
   }
 
   async completeUpload(sessionId: string, userId: string, ipAddress?: string): Promise<FileDto> {
@@ -141,8 +134,11 @@ export class FileService {
     }
 
     const chunkCount = Math.ceil(Number(session.sizeBytes) / session.chunkSize);
-    const assembled = await assembleChunks(sessionId, chunkCount, session.filename);
-    const fileBuffer = await import("node:fs/promises").then((fs) => fs.readFile(assembled));
+    const chunks = await this.uploads.listChunks(sessionId);
+    if (chunks.length !== chunkCount || chunks.some((chunk, index) => chunk.chunkIndex !== index)) {
+      throw new Error("Upload is missing one or more chunks");
+    }
+    const fileBuffer = Buffer.concat(chunks.map((chunk) => chunk.data));
 
     const checksum = sha256Hex(fileBuffer);
     if (checksum !== session.checksum) {
@@ -156,12 +152,19 @@ export class FileService {
       throw new Error(`File rejected by virus scanner (${scan.engine})`);
     }
 
-    const uploaded = await this.telegram.uploadLocalFile({
-      filePath: assembled,
-      filename: session.filename,
-      sizeBytes: Number(session.sizeBytes),
-      category: session.category as StorageCategory,
-    });
+    const assembled = path.join(tmpdir(), `nimbus-${sessionId}-${session.filename}`);
+    await writeFile(assembled, fileBuffer);
+    let uploaded;
+    try {
+      uploaded = await this.telegram.uploadLocalFile({
+        filePath: assembled,
+        filename: session.filename,
+        sizeBytes: Number(session.sizeBytes),
+        category: session.category as StorageCategory,
+      });
+    } finally {
+      await unlink(assembled).catch(() => undefined);
+    }
 
     const file = await this.files.create({
       filename: session.filename,
@@ -177,7 +180,7 @@ export class FileService {
     });
 
     await this.uploads.update(sessionId, { status: "completed" });
-    await removeUploadDir(sessionId);
+    await this.uploads.deleteChunks(sessionId);
     await this.audit.write({
       userId,
       action: "upload.complete",
