@@ -19,7 +19,11 @@ export function assertSameOrigin(request: Request): void {
     ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
     ...(process.env.VERCEL_PROJECT_PRODUCTION_URL ? [`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`] : []),
   ]);
-  if (!allowedOrigins.has(origin.replace(/\/$/, ""))) {
+  const originUrl = new URL(origin);
+  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+  const requestHost = forwardedHost ?? request.headers.get("host");
+  const sameRequestHost = requestHost !== null && originUrl.host === requestHost;
+  if (!sameRequestHost && !allowedOrigins.has(origin.replace(/\/$/, ""))) {
     throw new Error("Invalid origin");
   }
 }
