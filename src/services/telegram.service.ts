@@ -2,6 +2,7 @@ import "server-only";
 
 import { mkdir, writeFile, readFile, unlink } from "node:fs/promises";
 import path from "node:path";
+import bigInt from "big-integer";
 import { TelegramClient, Api } from "telegram";
 import { StringSession } from "telegram/sessions";
 import { CustomFile } from "telegram/client/uploads";
@@ -136,8 +137,8 @@ export class TelegramStorageService {
       ? await client.getInputEntity(channel.username)
       : channel.accessHash
         ? new Api.InputPeerChannel({
-            channelId: BigInt(channel.peerId),
-            accessHash: BigInt(channel.accessHash),
+            channelId: bigInt(channel.peerId),
+            accessHash: bigInt(channel.accessHash),
           })
         : await client.getInputEntity(channel.peerId);
     const customFile = new CustomFile(input.filename, input.sizeBytes, input.filePath);
