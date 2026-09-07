@@ -35,6 +35,6 @@ export function jsonError(error: unknown) {
     return NextResponse.json({ error: error.message }, { status: error.status });
   }
   const message = error instanceof Error ? error.message : "Unexpected error";
-  const status = message === "Unauthorized" ? 401 : 400;
+  const status = message === "Unauthorized" ? 401 : 500;
   return NextResponse.json({ error: message }, { status });
 }

@@ -14,6 +14,7 @@ export async function POST(request: Request) {
     const file = await fileService.completeUpload(body.sessionId, session.user.id, ip);
     return NextResponse.json(file);
   } catch (error) {
+    console.error("Upload completion failed", error);
     return jsonError(error);
   }
 }
