@@ -12,7 +12,7 @@ export interface UploadJob {
   error?: string;
 }
 
-const CHUNK = 512 * 1024;
+const CHUNK = 4 * 1024 * 1024;
 
 export function useUploader(onComplete?: () => void) {
   const [jobs, setJobs] = useState<UploadJob[]>([]);
