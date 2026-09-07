@@ -27,6 +27,7 @@ async function main() {
   const session = client.session.save();
   await client.disconnect();
   rl.close();
+  // ok
 
   console.log("\nString session (keep private, paste only into Nimbus Drive Settings):\n");
   console.log(session);
