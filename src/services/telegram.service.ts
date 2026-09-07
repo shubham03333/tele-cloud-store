@@ -132,6 +132,14 @@ export class TelegramStorageService {
   }): Promise<{ messageId: number; peerId: string; channelId: string }> {
     const client = await this.connect();
     const channel = await this.resolvePeer(input.category);
+    const target = channel.username
+      ? await client.getInputEntity(channel.username)
+      : channel.accessHash
+        ? new Api.InputPeerChannel({
+            channelId: BigInt(channel.peerId),
+            accessHash: BigInt(channel.accessHash),
+          })
+        : await client.getInputEntity(channel.peerId);
     const customFile = new CustomFile(input.filename, input.sizeBytes, input.filePath);
 
     const onProgress = ((ratio: number) => {
@@ -144,7 +152,7 @@ export class TelegramStorageService {
       });
     }
 
-    const message = await client.sendFile(channel.peerId, {
+    const message = await client.sendFile(target, {
       file: customFile,
       caption: input.filename,
       forceDocument: true,
