@@ -28,7 +28,7 @@ export function Sidebar() {
           const active = pathname === item.href;
           const Icon = item.icon;
           return (
-            <Link key={item.href} href={item.href} className="relative">
+            <Link key={item.href} href={item.href} className="relative" aria-current={active ? "page" : undefined}>
               {active ? (
                 <motion.span
                   layoutId="nav-pill"
@@ -72,8 +72,9 @@ export function MobileNav() {
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] font-medium",
+                  "flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] font-medium transition-colors",
                   active ? "text-primary" : "text-muted-foreground",
                 )}
               >

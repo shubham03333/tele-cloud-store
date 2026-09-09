@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #eef1f6;
+  --background: #f4f7fb;
   --foreground: #1c1c1e;
   --card: rgba(255, 255, 255, 0.62);
   --card-foreground: #1c1c1e;
@@ -24,9 +24,9 @@
   --ring: #0a84ff;
   --radius: 1.25rem;
   --sidebar: rgba(255, 255, 255, 0.42);
-  --mesh-a: #c9d7ff;
-  --mesh-b: #f3d6ff;
-  --mesh-c: #d9f3ff;
+  --mesh-a: #c9e7ff;
+  --mesh-b: #ffe2c8;
+  --mesh-c: #d9f5ed;
 }
 
 .dark {
@@ -95,7 +95,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
@@ -106,6 +106,15 @@ body {
     radial-gradient(900px 500px at 90% 0%, var(--mesh-b), transparent 50%),
     radial-gradient(800px 500px at 50% 100%, var(--mesh-c), transparent 55%),
     var(--background);
+}
+
+@media (max-width: 1023px) {
+  .mesh-bg {
+    background:
+      radial-gradient(620px 420px at 0% -8%, var(--mesh-a), transparent 62%),
+      radial-gradient(620px 420px at 100% 0%, var(--mesh-b), transparent 60%),
+      var(--background);
+  }
 }
 
 .glass {

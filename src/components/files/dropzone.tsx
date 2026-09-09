@@ -41,17 +41,18 @@ export function Dropzone({
       }}
       className={hover ? "rounded-[28px] ring-2 ring-primary/40" : ""}
     >
-      <div className="mb-4 flex gap-2">
+      <div className="mb-5 flex gap-2 sm:mb-4">
         <Button className="h-12 flex-1 sm:h-10 sm:flex-none" onClick={() => inputRef.current?.click()}>
           <Upload className="h-4 w-4" />
           Upload
         </Button>
         <Button
           variant="secondary"
-          className="hidden h-10 sm:inline-flex"
+          className="h-12 flex-1 sm:h-10 sm:flex-none"
           onClick={() => folderRef.current?.click()}
         >
-          Upload folder
+          <span className="sm:hidden">Folder</span>
+          <span className="hidden sm:inline">Upload folder</span>
         </Button>
         <input ref={inputRef} type="file" multiple className="hidden" onChange={(event) => collectFiles(event.target.files)} />
         <input
@@ -65,7 +66,7 @@ export function Dropzone({
       </div>
       {children}
       {jobs.length > 0 ? (
-        <div className="glass mt-4 space-y-3 rounded-3xl p-4">
+        <div className="glass mt-5 space-y-4 rounded-3xl p-4 sm:p-5">
           {jobs.map((job) => (
             <div key={job.id}>
               <div className="mb-1 flex items-center justify-between gap-3 text-sm">

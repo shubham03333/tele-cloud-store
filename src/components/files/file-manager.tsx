@@ -6,8 +6,10 @@ import {
   Download,
   Eye,
   FolderInput,
+  Grid2X2,
   Heart,
   Link2,
+  List,
   MoreHorizontal,
   Pencil,
   Pin,
@@ -63,13 +65,13 @@ export function FileManager({
   return (
     <div>
       <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">{items.length} items</p>
-        <div className="glass flex rounded-full p-1">
-          <Button size="sm" variant={view === "grid" ? "default" : "ghost"} onClick={() => onView("grid")}>
-            Grid
+        <p className="text-sm text-muted-foreground">{items.length} {items.length === 1 ? "item" : "items"}</p>
+        <div className="glass flex rounded-full p-1" aria-label="Choose file view">
+          <Button aria-label="Grid view" title="Grid view" size="icon" variant={view === "grid" ? "default" : "ghost"} onClick={() => onView("grid")}>
+            <Grid2X2 className="h-4 w-4" />
           </Button>
-          <Button size="sm" variant={view === "list" ? "default" : "ghost"} onClick={() => onView("list")}>
-            List
+          <Button aria-label="List view" title="List view" size="icon" variant={view === "list" ? "default" : "ghost"} onClick={() => onView("list")}>
+            <List className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -92,7 +94,7 @@ export function FileManager({
       {view === "grid" ? (
         <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-3 xl:grid-cols-4">
           {items.map((file) => (
-            <motion.div key={file.id} layout className="glass relative rounded-[22px] p-3 sm:p-4">
+            <motion.div key={file.id} layout className="glass relative min-h-32 rounded-[22px] p-3 sm:p-4">
               <button
                 type="button"
                 className="absolute right-2 top-2 flex h-10 w-10 items-center justify-center rounded-full bg-background/70"
