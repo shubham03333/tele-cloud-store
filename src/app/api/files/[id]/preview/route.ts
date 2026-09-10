@@ -5,7 +5,7 @@ import { jsonError, requireApiSession } from "@/lib/api";
 
 type Params = { params: Promise<{ id: string }> };
 
-const INITIAL_STREAM_BYTES = 8 * 1024 * 1024;
+const INITIAL_STREAM_BYTES = 2 * 1024 * 1024;
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
