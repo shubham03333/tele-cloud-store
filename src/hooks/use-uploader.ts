@@ -85,6 +85,9 @@ function useUploaderState(): Uploader {
           throw new Error(doneJson.error ?? "Finalize failed");
         }
         update(sessionId, { status: "done", progress: 100 });
+        window.setTimeout(() => {
+          setJobs((current) => current.filter((job) => job.id !== sessionId));
+        }, 900);
         toast.success(`Uploaded ${file.name}`);
         onComplete?.();
       } catch (error) {

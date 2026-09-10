@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   Copy,
+  CheckCircle2,
   Download,
   Eye,
   File,
@@ -24,6 +25,7 @@ import { motion } from "framer-motion";
 import type { FileDto } from "@/types";
 import { formatBytes, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { MediaPreview } from "@/components/media/media-preview";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
@@ -54,6 +56,7 @@ export function FileManager({
 }) {
   const [preview, setPreview] = useState<FileDto | null>(null);
   const [menuFile, setMenuFile] = useState<FileDto | null>(null);
+  const [download, setDownload] = useState<{ name: string; progress: number | null; loaded: number; total: number | null } | null>(null);
 
   async function run(action: () => Promise<unknown>, success: string) {
     try {
@@ -66,8 +69,63 @@ export function FileManager({
     }
   }
 
+  async function downloadFile(file: FileDto) {
+    setMenuFile(null);
+    setDownload({ name: file.filename, progress: 0, loaded: 0, total: Number(file.sizeBytes) });
+    try {
+      const response = await fetch(`/api/files/${file.id}/download`);
+      if (!response.ok || !response.body) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error ?? "Download failed");
+      }
+      const totalHeader = response.headers.get("content-length");
+      const total = totalHeader ? Number(totalHeader) : Number(file.sizeBytes);
+      const reader = response.body.getReader();
+      const chunks: ArrayBuffer[] = [];
+      let loaded = 0;
+      while (true) {
+        const result = await reader.read();
+        if (result.done) break;
+        if (result.value) {
+          chunks.push(new Uint8Array(result.value).slice().buffer as ArrayBuffer);
+          loaded += result.value.byteLength;
+          setDownload({ name: file.filename, progress: total ? Math.round((loaded / total) * 100) : null, loaded, total });
+        }
+      }
+      const blob = new Blob(chunks, { type: file.mimeType });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = file.filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      setDownload({ name: file.filename, progress: 100, loaded, total });
+      window.setTimeout(() => setDownload(null), 900);
+    } catch (error) {
+      setDownload(null);
+      toast.error(error instanceof Error ? error.message : "Download failed");
+    }
+  }
+
   return (
     <div>
+      {download ? (
+        <div className="mb-5 overflow-hidden rounded-3xl border border-primary/15 bg-primary/[0.06] p-4 shadow-sm shadow-primary/5 sm:p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+              {download.progress === 100 ? <CheckCircle2 className="h-5 w-5" /> : <Download className="h-5 w-5" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="truncate font-medium">{download.progress === 100 ? "Download ready" : `Downloading ${download.name}`}</span>
+                <span className="shrink-0 text-xs font-medium text-primary">{download.progress === null ? "Preparing" : `${download.progress}%`}</span>
+              </div>
+              <Progress value={download.progress ?? 12} className="mt-3" />
+              <p className="mt-2 text-xs text-muted-foreground">{download.progress === 100 ? download.name : `${formatBytes(BigInt(download.loaded))} of ${formatBytes(BigInt(download.total ?? 0))}`}</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">{items.length} {items.length === 1 ? "item" : "items"}</p>
         <div className="glass flex rounded-full p-1" aria-label="Choose file view">
@@ -162,6 +220,9 @@ export function FileManager({
             setMenuFile(null);
           }
         }}
+        onDownload={() => {
+          if (menuFile) void downloadFile(menuFile);
+        }}
         run={run}
       />
     </div>
@@ -208,12 +269,14 @@ function FileActionSheet({
   deleted,
   onClose,
   onPreview,
+  onDownload,
   run,
 }: {
   file: FileDto | null;
   deleted?: boolean;
   onClose: () => void;
   onPreview: () => void;
+  onDownload: () => void;
   run: (action: () => Promise<unknown>, success: string) => Promise<void>;
 }) {
   if (!file) {
@@ -230,7 +293,7 @@ function FileActionSheet({
       ]
     : [
         { label: "Preview", icon: Eye, onClick: onPreview },
-        { label: "Download", icon: Download, href: `/api/files/${file.id}/download` },
+        { label: "Download", icon: Download, onClick: onDownload },
         {
           label: file.favorite ? "Unfavorite" : "Favorite",
           icon: Heart,
@@ -323,7 +386,7 @@ function FileActionSheet({
             "flex min-h-12 items-center gap-3 rounded-2xl px-3 text-left text-sm hover:bg-muted";
           if ("href" in action && action.href) {
             return (
-              <a key={action.label} href={action.href} className={className} onClick={onClose}>
+              <a key={action.label} href={String(action.href)} className={className} onClick={onClose}>
                 <Icon className="h-4 w-4" />
                 {action.label}
               </a>

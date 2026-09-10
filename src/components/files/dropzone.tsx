@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Upload } from "lucide-react";
+import { CheckCircle2, Loader2, Upload } from "lucide-react";
 import { useUploader } from "@/hooks/use-uploader";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -64,32 +64,40 @@ export function Dropzone({
           {...{ webkitdirectory: "true", directory: "true" }}
         />
       </div>
-      {children}
       {jobs.length > 0 ? (
-        <div className="glass mt-5 space-y-4 rounded-3xl p-4 sm:p-5">
+        <div className="glass mb-5 space-y-3 rounded-3xl border border-primary/10 bg-primary/[0.03] p-3 shadow-sm shadow-primary/5 sm:p-4">
           {jobs.map((job) => (
-            <div key={job.id}>
-              <div className="mb-1 flex items-center justify-between gap-3 text-sm">
-                <span className="truncate">{job.name}</span>
-                <span className="shrink-0 text-muted-foreground">{job.status}</span>
+            <div key={job.id} className="rounded-2xl bg-background/65 p-3 ring-1 ring-border/60 sm:p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  {job.status === "done" ? <CheckCircle2 className="h-4 w-4" /> : <Loader2 className="h-4 w-4 animate-spin" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="truncate font-medium">{job.name}</span>
+                    <span className="shrink-0 text-xs font-medium capitalize text-primary">{job.status}</span>
+                  </div>
+                  <Progress value={job.progress} className="mt-2.5" />
+                </div>
+                <span className="shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">{job.progress}%</span>
               </div>
-              <Progress value={job.progress} />
-              <div className="mt-2 flex flex-wrap gap-2">
-                <Button size="sm" variant="secondary" onClick={() => void pause(job.id)}>
+              <div className="mt-3 flex flex-wrap gap-2 pl-12">
+                <Button size="sm" variant="ghost" onClick={() => void pause(job.id)} disabled={job.status !== "uploading"}>
                   Pause
                 </Button>
-                <Button size="sm" variant="secondary" onClick={() => void resume(job.id)}>
+                <Button size="sm" variant="ghost" onClick={() => void resume(job.id)} disabled={job.status !== "paused"}>
                   Resume
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => void cancel(job.id)}>
                   Cancel
                 </Button>
               </div>
-              {job.error ? <p className="mt-1 text-xs text-destructive">{job.error}</p> : null}
+              {job.error ? <p className="mt-2 pl-12 text-xs text-destructive">{job.error}</p> : null}
             </div>
           ))}
         </div>
       ) : null}
+      {children}
     </div>
   );
 }
