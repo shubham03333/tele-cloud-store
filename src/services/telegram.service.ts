@@ -22,6 +22,12 @@ export class TelegramNotConfiguredError extends Error {
   }
 }
 
+type TelegramPeer = {
+  peerId: string;
+  accessHash?: string | null;
+  username?: string | null;
+};
+
 export class TelegramStorageService {
   constructor(
     private readonly credentials: TelegramCredentialRepository,
@@ -172,9 +178,9 @@ export class TelegramStorageService {
     };
   }
 
-  async downloadToBuffer(peerId: string, messageId: number): Promise<Buffer> {
+  async downloadToBuffer(peer: TelegramPeer, messageId: number): Promise<Buffer> {
     const client = await this.connect();
-    const messages = await client.getMessages(peerId, { ids: messageId });
+    const messages = await client.getMessages(await this.resolveInputPeer(client, peer), { ids: messageId });
     const message = messages[0];
     if (!message?.media) {
       throw new Error("Telegram message media is missing");
@@ -186,9 +192,9 @@ export class TelegramStorageService {
     return Buffer.from(data);
   }
 
-  async streamDownload(peerId: string, messageId: number): Promise<ReadableStream<Uint8Array>> {
+  async streamDownload(peer: TelegramPeer, messageId: number): Promise<ReadableStream<Uint8Array>> {
     const client = await this.connect();
-    const messages = await client.getMessages(peerId, { ids: messageId });
+    const messages = await client.getMessages(await this.resolveInputPeer(client, peer), { ids: messageId });
     const message = messages[0];
     if (!message) {
       throw new Error("Telegram message not found");
@@ -201,7 +207,7 @@ export class TelegramStorageService {
     const iterator = client.iterDownload({
       file: message.media,
       requestSize: 512 * 1024,
-      msgData: [peerId, messageId],
+      msgData: [peer.peerId, messageId],
     })[Symbol.asyncIterator]();
 
     return new ReadableStream({
@@ -214,6 +220,19 @@ export class TelegramStorageService {
         controller.enqueue(new Uint8Array(value));
       },
     });
+  }
+
+  private async resolveInputPeer(client: TelegramClient, peer: TelegramPeer) {
+    if (peer.username) {
+      return client.getInputEntity(peer.username);
+    }
+    if (peer.accessHash) {
+      return new Api.InputPeerChannel({
+        channelId: bigInt(peer.peerId),
+        accessHash: bigInt(peer.accessHash),
+      });
+    }
+    return peer.peerId;
   }
 
   async forwardMessage(fromPeer: string, messageId: number, toPeer: string): Promise<number> {

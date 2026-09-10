@@ -294,7 +294,10 @@ export class FileService {
     if (!file || file.deleted) {
       throw new Error("File not found");
     }
-    const stream = await this.telegram.streamDownload(file.telegramPeerId, file.messageId);
+    const stream = await this.telegram.streamDownload(
+      { peerId: file.telegramPeerId, accessHash: file.channel.accessHash, username: file.channel.username },
+      file.messageId,
+    );
     return { file, stream };
   }
 
@@ -303,7 +306,10 @@ export class FileService {
     if (!file || file.deleted) {
       throw new Error("File not found");
     }
-    const buffer = await this.telegram.downloadToBuffer(file.telegramPeerId, file.messageId);
+    const buffer = await this.telegram.downloadToBuffer(
+      { peerId: file.telegramPeerId, accessHash: file.channel.accessHash, username: file.channel.username },
+      file.messageId,
+    );
     return { file, buffer };
   }
 }
