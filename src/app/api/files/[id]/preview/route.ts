@@ -5,6 +5,8 @@ import { jsonError, requireApiSession } from "@/lib/api";
 
 type Params = { params: Promise<{ id: string }> };
 
+const INITIAL_STREAM_BYTES = 8 * 1024 * 1024;
+
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
@@ -29,7 +31,7 @@ export async function GET(request: Request, { params }: Params) {
       }
       const suffixLength = Number(match[2] || 0);
       start = match[1] ? Number(match[1]) : Math.max(0, total - suffixLength);
-      end = match[1] && match[2] ? Number(match[2]) : Math.min(total - 1, start + 1024 * 1024 - 1);
+      end = match[1] && match[2] ? Number(match[2]) : Math.min(total - 1, start + INITIAL_STREAM_BYTES - 1);
       if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start > end || start >= total) {
         return new NextResponse(null, { status: 416, headers: { "Content-Range": `bytes */${total}` } });
       }

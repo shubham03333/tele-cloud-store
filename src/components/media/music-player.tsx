@@ -173,6 +173,8 @@ export function MusicPlayer() {
           setPlaying(true);
           setBuffering(false);
         }}
+        onCanPlay={() => setBuffering(false)}
+        onStalled={() => setBuffering(true)}
         onError={() => {
           setPlaying(false);
           setBuffering(false);
