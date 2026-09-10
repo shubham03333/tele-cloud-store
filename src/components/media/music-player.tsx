@@ -33,6 +33,8 @@ export function MusicPlayer() {
   const [tracks, setTracks] = useState<FileDto[]>([]);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [playing, setPlaying] = useState(false);
+  const [buffering, setBuffering] = useState(false);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -78,6 +80,8 @@ export function MusicPlayer() {
     element.load();
     setCurrentTime(0);
     setDuration(0);
+    setBuffering(false);
+    setPlaybackError(null);
   }, [activeTrack]);
 
   useEffect(() => {
@@ -97,6 +101,24 @@ export function MusicPlayer() {
   function selectTrack(index: number, autoPlay = true) {
     setActiveIndex(index);
     setPlaying(autoPlay);
+  }
+
+  async function togglePlayback() {
+    const element = audio.current;
+    if (!element || !activeTrack) return;
+    if (!element.paused) {
+      element.pause();
+      return;
+    }
+    setPlaybackError(null);
+    setBuffering(true);
+    try {
+      await element.play();
+    } catch {
+      setPlaying(false);
+      setBuffering(false);
+      setPlaybackError("This track could not be played. Try again.");
+    }
   }
 
   function nextTrack() {
@@ -139,9 +161,23 @@ export function MusicPlayer() {
     <div className="space-y-4">
       <audio
         ref={audio}
-        preload="metadata"
-        onPlay={() => setPlaying(true)}
+        preload="auto"
+        onPlay={() => {
+          setPlaying(true);
+          setBuffering(false);
+          setPlaybackError(null);
+        }}
         onPause={() => setPlaying(false)}
+        onWaiting={() => setBuffering(true)}
+        onPlaying={() => {
+          setPlaying(true);
+          setBuffering(false);
+        }}
+        onError={() => {
+          setPlaying(false);
+          setBuffering(false);
+          setPlaybackError("This track could not be loaded.");
+        }}
         onEnded={handleEnded}
         onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
         onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
@@ -186,8 +222,8 @@ export function MusicPlayer() {
           <Button aria-label="Previous track" title="Previous track" variant="ghost" size="icon" onClick={previousTrack} disabled={!activeTrack}>
             <SkipBack className="h-5 w-5" />
           </Button>
-          <Button aria-label={playing ? "Pause" : "Play"} title={playing ? "Pause" : "Play"} size="icon" className="h-14 w-14" onClick={() => setPlaying((value) => !value)} disabled={!activeTrack}>
-            {playing ? <Pause className="h-6 w-6" fill="currentColor" /> : <Play className="ml-0.5 h-6 w-6" fill="currentColor" />}
+          <Button aria-label={playing ? "Pause" : "Play"} title={playing ? "Pause" : "Play"} size="icon" className="h-14 w-14" onClick={() => void togglePlayback()} disabled={!activeTrack}>
+            {buffering ? <Loader2 className="h-6 w-6 animate-spin" /> : playing ? <Pause className="h-6 w-6" fill="currentColor" /> : <Play className="ml-0.5 h-6 w-6" fill="currentColor" />}
           </Button>
           <Button aria-label="Next track" title="Next track" variant="ghost" size="icon" onClick={nextTrack} disabled={!activeTrack}>
             <SkipForward className="h-5 w-5" />
@@ -200,6 +236,7 @@ export function MusicPlayer() {
             <input aria-label="Volume" type="range" min={0} max={1} step={0.01} value={volume} onChange={(event) => setVolume(Number(event.target.value))} className="w-20 accent-primary" />
           </div>
         </div>
+        {playbackError ? <p role="status" className="mt-3 text-center text-sm text-destructive">{playbackError}</p> : null}
       </section>
 
       <section className="glass rounded-[24px] p-3 sm:p-4">

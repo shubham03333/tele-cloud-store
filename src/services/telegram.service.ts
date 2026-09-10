@@ -243,18 +243,25 @@ export class TelegramStorageService {
     const iterator = client.iterDownload({
       file: message.media,
       ...(range ? { offset: bigInt(range.start), limit: range.length } : {}),
-      requestSize: 512 * 1024,
+      requestSize: 1024 * 1024,
       msgData: [peer.peerId, messageId],
     })[Symbol.asyncIterator]();
 
     return new ReadableStream({
       async pull(controller) {
-        const { value, done } = await iterator.next();
-        if (done || !value) {
-          controller.close();
-          return;
+        try {
+          const { value, done } = await iterator.next();
+          if (done || !value) {
+            controller.close();
+            return;
+          }
+          controller.enqueue(new Uint8Array(value));
+        } catch (error) {
+          controller.error(error);
         }
-        controller.enqueue(new Uint8Array(value));
+      },
+      async cancel() {
+        await iterator.return?.();
       },
     });
   }
