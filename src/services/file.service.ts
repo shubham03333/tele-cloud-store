@@ -46,6 +46,37 @@ export class FileService {
     return this.files.stats();
   }
 
+  async syncTelegramChannel(category: StorageCategory, userId: string, ipAddress?: string) {
+    const { channel, media } = await this.telegram.listChannelMedia(category);
+    let imported = 0;
+    for (const item of media) {
+      const existing = await this.files.findByTelegramMessage(channel.id, item.messageId);
+      if (existing) continue;
+      await this.files.create({
+        filename: item.filename,
+        originalName: item.filename,
+        messageId: item.messageId,
+        telegramPeerId: channel.peerId,
+        channel: { connect: { id: channel.id } },
+        uploadedAt: item.uploadedAt,
+        sizeBytes: item.sizeBytes,
+        mimeType: item.mimeType,
+        checksum: `telegram:${channel.id}:${item.messageId}`,
+        category,
+      });
+      imported += 1;
+    }
+    await this.audit.write({
+      userId,
+      action: "telegram.channel.sync",
+      resource: "telegram-channel",
+      resourceId: channel.id,
+      metadata: { category, scanned: media.length, imported },
+      ipAddress,
+    });
+    return { scanned: media.length, imported };
+  }
+
   async get(id: string) {
     const file = await this.files.findById(id);
     if (!file || file.deleted) {

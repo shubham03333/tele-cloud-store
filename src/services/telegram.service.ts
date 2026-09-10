@@ -129,6 +129,38 @@ export class TelegramStorageService {
     return channel;
   }
 
+  async listChannelMedia(category: StorageCategory, limit = 100) {
+    const client = await this.connect();
+    const channel = await this.resolvePeer(category);
+    const entity = channel.username
+      ? await client.getInputEntity(channel.username)
+      : channel.accessHash
+        ? new Api.InputPeerChannel({ channelId: bigInt(channel.peerId), accessHash: bigInt(channel.accessHash) })
+        : await client.getInputEntity(channel.peerId);
+    const media: {
+      messageId: number;
+      filename: string;
+      mimeType: string;
+      sizeBytes: bigint;
+      uploadedAt: Date;
+    }[] = [];
+
+    for await (const message of client.iterMessages(entity, { limit })) {
+      const file = message.file;
+      if (!file) continue;
+      const size = file.size;
+      media.push({
+        messageId: Number(message.id),
+        filename: file.name || `${category}-${message.id}`,
+        mimeType: file.mimeType || "application/octet-stream",
+        sizeBytes: BigInt(size?.toString() ?? "0"),
+        uploadedAt: message.date ? new Date(Number(message.date) * 1000) : new Date(),
+      });
+    }
+
+    return { channel, media };
+  }
+
   async uploadLocalFile(input: {
     filePath: string;
     filename: string;

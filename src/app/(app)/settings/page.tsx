@@ -21,6 +21,7 @@ export default function SettingsPage() {
   const [sessionValue, setSessionValue] = useState("");
   const [peer, setPeer] = useState("");
   const [category, setCategory] = useState<(typeof STORAGE_CATEGORIES)[number]>("files");
+  const [syncing, setSyncing] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [audit, setAudit] = useState<{
@@ -126,6 +127,27 @@ export default function SettingsPage() {
               }}
             >
               Bind channel
+            </Button>
+            <Button
+              variant="outline"
+              disabled={syncing || !telegram?.channels.some((channel) => channel.category === category)}
+              onClick={async () => {
+                setSyncing(true);
+                const response = await fetch("/api/telegram", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ action: "sync", category }),
+                });
+                const data = await response.json();
+                setSyncing(false);
+                if (!response.ok) {
+                  toast.error(data.error);
+                  return;
+                }
+                toast.success(`Synced ${data.imported} new file${data.imported === 1 ? "" : "s"}`);
+              }}
+            >
+              {syncing ? "Syncing channel..." : "Sync channel files"}
             </Button>
           </div>
         </section>

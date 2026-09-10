@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getContainer } from "@/lib/di";
 import { jsonError, requireApiSession } from "@/lib/api";
 import { channelBindSchema, telegramSessionSchema } from "@/lib/validations";
+import { STORAGE_CATEGORIES } from "@/types";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
 
 export async function GET(request: Request) {
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Too many attempts" }, { status: 429 });
     }
     const body = await request.json();
-    const { telegram, audit } = getContainer();
+    const { telegram, audit, fileService } = getContainer();
 
     if (body.action === "session") {
       const parsed = telegramSessionSchema.parse(body);
@@ -51,6 +52,14 @@ export async function POST(request: Request) {
         ipAddress: ip,
       });
       return NextResponse.json(await telegram.status());
+    }
+
+    if (body.action === "sync") {
+      if (!STORAGE_CATEGORIES.includes(body.category)) {
+        return NextResponse.json({ error: "Invalid category" }, { status: 400 });
+      }
+      const result = await fileService.syncTelegramChannel(body.category, session.user.id, ip);
+      return NextResponse.json(result);
     }
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });

@@ -45,6 +45,10 @@ export class FileRepository {
     return toDto(file);
   }
 
+  async findByTelegramMessage(channelId: string, messageId: number) {
+    return prisma.fileObject.findFirst({ where: { channelId, messageId } });
+  }
+
   async findById(id: string) {
     return prisma.fileObject.findUnique({
       where: { id },
