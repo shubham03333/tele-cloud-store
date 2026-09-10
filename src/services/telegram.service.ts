@@ -13,6 +13,7 @@ import type { StorageCategory } from "@/types";
 
 const globalForTelegram = globalThis as unknown as {
   nimbusTelegram?: TelegramClient;
+  nimbusTelegramConnect?: Promise<TelegramClient>;
 };
 
 export class TelegramNotConfiguredError extends Error {
@@ -62,6 +63,27 @@ export class TelegramStorageService {
       return globalForTelegram.nimbusTelegram;
     }
 
+    if (globalForTelegram.nimbusTelegramConnect) {
+      return globalForTelegram.nimbusTelegramConnect;
+    }
+
+    const connectPromise = this.createClient();
+    globalForTelegram.nimbusTelegramConnect = connectPromise;
+    try {
+      return await connectPromise;
+    } finally {
+      if (globalForTelegram.nimbusTelegramConnect === connectPromise) {
+        globalForTelegram.nimbusTelegramConnect = undefined;
+      }
+    }
+  }
+
+  private async createClient(): Promise<TelegramClient> {
+    if (globalForTelegram.nimbusTelegram) {
+      await globalForTelegram.nimbusTelegram.disconnect().catch(() => undefined);
+      globalForTelegram.nimbusTelegram = undefined;
+    }
+
     const creds = await this.credentials.get();
     if (!creds.encryptedSession || !creds.sessionIv || !creds.sessionAuthTag) {
       throw new TelegramNotConfiguredError();
@@ -94,6 +116,7 @@ export class TelegramStorageService {
   }
 
   async disconnect(): Promise<void> {
+    await globalForTelegram.nimbusTelegramConnect?.catch(() => undefined);
     const client = globalForTelegram.nimbusTelegram;
     if (client) {
       await client.disconnect();
