@@ -61,18 +61,26 @@ function useUploaderState(): Uploader {
         const sessionId = initJson.sessionId as string;
         const total = Math.ceil(file.size / CHUNK);
 
-        for (let i = 0; i < total; i += 1) {
-          const blob = file.slice(i * CHUNK, Math.min(file.size, (i + 1) * CHUNK));
-          const put = await fetch(`/api/files/upload/chunk?sessionId=${sessionId}&chunkIndex=${i}`, {
-            method: "PUT",
-            body: blob,
-          });
-          if (!put.ok) {
-            const err = await put.json();
-            throw new Error(err.error ?? "Chunk upload failed");
+        let completed = 0;
+        let nextChunk = 0;
+        const uploadChunk = async () => {
+          while (nextChunk < total) {
+            const index = nextChunk;
+            nextChunk += 1;
+            const blob = file.slice(index * CHUNK, Math.min(file.size, (index + 1) * CHUNK));
+            const put = await fetch(`/api/files/upload/chunk?sessionId=${sessionId}&chunkIndex=${index}`, {
+              method: "PUT",
+              body: blob,
+            });
+            if (!put.ok) {
+              const err = await put.json();
+              throw new Error(err.error ?? "Chunk upload failed");
+            }
+            completed += 1;
+            update(sessionId, { progress: Math.round((completed / total) * 90) });
           }
-          update(sessionId, { progress: Math.round(((i + 1) / total) * 90) });
-        }
+        };
+        await Promise.all(Array.from({ length: Math.min(3, total) }, () => uploadChunk()));
 
         update(sessionId, { status: "finalizing", progress: 95 });
         const done = await fetch("/api/files/upload/complete", {

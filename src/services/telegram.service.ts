@@ -218,7 +218,7 @@ export class TelegramStorageService {
       file: customFile,
       caption: input.filename,
       forceDocument: true,
-      workers: 2,
+      workers: 4,
       progressCallback: onProgress,
     });
 
@@ -266,7 +266,7 @@ export class TelegramStorageService {
     const iterator = client.iterDownload({
       file: message.media,
       ...(range ? { offset: bigInt(range.start), limit: range.length } : {}),
-      requestSize: 512 * 1024,
+      requestSize: 1024 * 1024,
       msgData: [peer.peerId, messageId],
     })[Symbol.asyncIterator]();
 
