@@ -28,8 +28,9 @@ npm run dev
 
 The first account created becomes the only owner. Further sign-ups are rejected.
 
-## Production (Vercel)
+## Production deployment
 
+- Telegram MTProto uses one long-lived connection for the configured string session. Vercel's multiple serverless instances are not compatible with that session: deploy this app to one persistent Node.js instance (or use a dedicated Telegram worker) and keep only one active deployment connected to Telegram.
 - Set `DATABASE_URL` to the shared transaction pooler URL and `DIRECT_URL` to the session pooler URL. Run `npm run db:push` separately when the Prisma schema changes; the Vercel build does not modify the database.
 - Set all secrets in the Vercel project environment.
 - Large uploads use chunked requests; Telegram transfer still needs a Node.js runtime with enough `maxDuration`.

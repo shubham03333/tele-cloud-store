@@ -35,6 +35,15 @@ export function jsonError(error: unknown) {
     return NextResponse.json({ error: error.message }, { status: error.status });
   }
   const message = error instanceof Error ? error.message : "Unexpected error";
+  if (message.includes("AUTH_KEY_DUPLICATED")) {
+    return NextResponse.json(
+      {
+        error:
+          "Telegram rejected this session because it is active in another app instance. Stop the other deployment or generate a new string session, then reconnect.",
+      },
+      { status: 503 },
+    );
+  }
   const status = message === "Unauthorized" ? 401 : 500;
   return NextResponse.json({ error: message }, { status });
 }
