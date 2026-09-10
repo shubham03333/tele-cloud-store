@@ -4,6 +4,7 @@ import { FileRepository } from "@/repositories/file.repository";
 import { FolderRepository } from "@/repositories/folder.repository";
 import {
   AuditRepository,
+  CategoryRepository,
   ChannelRepository,
   LoginHistoryRepository,
   TelegramCredentialRepository,
@@ -19,6 +20,7 @@ function buildContainer() {
   const files = new FileRepository();
   const folders = new FolderRepository();
   const channels = new ChannelRepository();
+  const categories = new CategoryRepository();
   const credentials = new TelegramCredentialRepository();
   const audit = new AuditRepository();
   const loginHistory = new LoginHistoryRepository();
@@ -31,6 +33,7 @@ function buildContainer() {
     files,
     folders,
     channels,
+    categories,
     credentials,
     audit,
     loginHistory,

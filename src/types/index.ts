@@ -8,7 +8,9 @@ export const STORAGE_CATEGORIES = [
   "archives",
 ] as const;
 
-export type StorageCategory = (typeof STORAGE_CATEGORIES)[number];
+export type StorageCategory = string;
+
+export type LibraryCategory = string;
 
 export type FileListView = "grid" | "list";
 

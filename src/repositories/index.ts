@@ -1,6 +1,37 @@
 import { prisma } from "@/lib/db";
 import type { StorageCategory } from "@/types";
 
+const CUSTOM_CATEGORIES_KEY = "custom-categories";
+
+export class CategoryRepository {
+  async list() {
+    const setting = await prisma.appSetting.findUnique({ where: { key: CUSTOM_CATEGORIES_KEY } });
+    if (!setting) return [];
+
+    try {
+      const categories = JSON.parse(setting.value);
+      return Array.isArray(categories) && categories.every((category) => typeof category === "string")
+        ? categories
+        : [];
+    } catch {
+      return [];
+    }
+  }
+
+  async add(category: string) {
+    const categories = await this.list();
+    if (!categories.includes(category)) {
+      categories.push(category);
+      await prisma.appSetting.upsert({
+        where: { key: CUSTOM_CATEGORIES_KEY },
+        create: { key: CUSTOM_CATEGORIES_KEY, value: JSON.stringify(categories) },
+        update: { value: JSON.stringify(categories) },
+      });
+    }
+    return categories;
+  }
+}
+
 export class ChannelRepository {
   async upsert(input: {
     category: StorageCategory;

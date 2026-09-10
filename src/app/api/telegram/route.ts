@@ -44,6 +44,10 @@ export async function POST(request: Request) {
 
     if (body.action === "bind") {
       const parsed = channelBindSchema.parse(body);
+      const customCategories = await getContainer().categories.list();
+      if (!STORAGE_CATEGORIES.includes(parsed.category as (typeof STORAGE_CATEGORIES)[number]) && !customCategories.includes(parsed.category)) {
+        return NextResponse.json({ error: "Add this library before binding a channel" }, { status: 400 });
+      }
       await telegram.bindChannel(parsed.category, parsed.peer);
       await audit.write({
         userId: session.user.id,
@@ -55,7 +59,7 @@ export async function POST(request: Request) {
     }
 
     if (body.action === "sync") {
-      if (!STORAGE_CATEGORIES.includes(body.category)) {
+      if (typeof body.category !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(body.category)) {
         return NextResponse.json({ error: "Invalid category" }, { status: 400 });
       }
       const result = await fileService.syncTelegramChannel(body.category, session.user.id, ip);
