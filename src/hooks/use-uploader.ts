@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { createContext, createElement, useCallback, useContext, useState } from "react";
 import { toast } from "sonner";
 import { sha256HexBrowser } from "@/utils/hash";
 
@@ -14,7 +14,20 @@ export interface UploadJob {
 
 const CHUNK = 4 * 1024 * 1024;
 
-export function useUploader(onComplete?: () => void) {
+type UploadComplete = () => void;
+
+type Uploader = {
+  jobs: UploadJob[];
+  uploadFile: (file: File, folderId?: string | null, onComplete?: UploadComplete) => Promise<void>;
+  pause: (sessionId: string) => Promise<void>;
+  resume: (sessionId: string) => Promise<void>;
+  cancel: (sessionId: string) => Promise<void>;
+  retry: (job: UploadJob, file: File) => void;
+};
+
+const UploaderContext = createContext<Uploader | null>(null);
+
+function useUploaderState(): Uploader {
   const [jobs, setJobs] = useState<UploadJob[]>([]);
 
   const update = (id: string, patch: Partial<UploadJob>) => {
@@ -22,7 +35,7 @@ export function useUploader(onComplete?: () => void) {
   };
 
   const uploadFile = useCallback(
-    async (file: File, folderId?: string | null) => {
+    async (file: File, folderId?: string | null, onComplete?: UploadComplete) => {
       const localId = crypto.randomUUID();
       setJobs((current) => [...current, { id: localId, name: file.name, progress: 0, status: "hashing" }]);
       try {
@@ -80,7 +93,7 @@ export function useUploader(onComplete?: () => void) {
         toast.error(message);
       }
     },
-    [onComplete],
+    [],
   );
 
   const pause = async (sessionId: string) => {
@@ -115,4 +128,18 @@ export function useUploader(onComplete?: () => void) {
   };
 
   return { jobs, uploadFile, pause, resume, cancel, retry };
+}
+
+export function UploaderProvider({ children }: { children: React.ReactNode }) {
+  const uploader = useUploaderState();
+
+  return createElement(UploaderContext.Provider, { value: uploader }, children);
+}
+
+export function useUploader() {
+  const uploader = useContext(UploaderContext);
+  if (!uploader) {
+    throw new Error("useUploader must be used within UploaderProvider");
+  }
+  return uploader;
 }

@@ -17,13 +17,13 @@ export function Dropzone({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const folderRef = useRef<HTMLInputElement>(null);
-  const { jobs, uploadFile, pause, resume, cancel } = useUploader(onUploaded);
+  const { jobs, uploadFile, pause, resume, cancel } = useUploader();
   const [hover, setHover] = useState(false);
 
   function collectFiles(fileList: FileList | null) {
     if (!fileList) return;
     Array.from(fileList).forEach((file) => {
-      void uploadFile(file, folderId);
+      void uploadFile(file, folderId, onUploaded);
     });
   }
 
@@ -41,14 +41,14 @@ export function Dropzone({
       }}
       className={hover ? "rounded-[28px] ring-2 ring-primary/40" : ""}
     >
-      <div className="mb-5 flex gap-2 sm:mb-4">
-        <Button className="h-12 flex-1 sm:h-10 sm:flex-none" onClick={() => inputRef.current?.click()}>
+      <div className="mb-5 flex flex-wrap gap-2 sm:mb-4">
+        <Button className="h-12 min-w-0 flex-1 sm:h-10 sm:flex-none" onClick={() => inputRef.current?.click()}>
           <Upload className="h-4 w-4" />
           Upload
         </Button>
         <Button
           variant="secondary"
-          className="h-12 flex-1 sm:h-10 sm:flex-none"
+          className="h-12 min-w-0 flex-1 sm:h-10 sm:flex-none"
           onClick={() => folderRef.current?.click()}
         >
           <span className="sm:hidden">Folder</span>

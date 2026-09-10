@@ -5,11 +5,15 @@ import {
   Copy,
   Download,
   Eye,
+  File,
+  FileArchive,
+  FileText,
   FolderInput,
   Grid2X2,
   Heart,
   Link2,
   List,
+  Music,
   MoreHorizontal,
   Pencil,
   Pin,
@@ -104,11 +108,9 @@ export function FileManager({
                 <MoreHorizontal className="h-4 w-4" />
               </button>
               <button type="button" className="w-full pr-8 text-left" onClick={() => setPreview(file)}>
-                {file.mimeType.startsWith("image/") || file.mimeType.startsWith("video/") ? (
-                  <div className="mb-3 aspect-[4/3] overflow-hidden rounded-2xl bg-muted">
-                    <FileVisual file={file} />
-                  </div>
-                ) : null}
+                <div className="mb-3 flex aspect-[4/3] items-center justify-center overflow-hidden rounded-2xl bg-muted">
+                  {isVisualFile(file) ? <FileVisual file={file} /> : <FileIcon file={file} large />}
+                </div>
                 <p className="line-clamp-2 text-sm font-medium leading-snug">{file.filename}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{formatBytes(BigInt(file.sizeBytes))}</p>
                 <p className="mt-0.5 hidden text-xs text-muted-foreground sm:block">{formatDate(file.uploadedAt)}</p>
@@ -120,7 +122,7 @@ export function FileManager({
         <div className="glass divide-y divide-border overflow-hidden rounded-[24px]">
           {items.map((file) => (
             <div key={file.id} className="flex min-h-16 items-center gap-2 px-3 py-2 sm:px-4">
-              {file.mimeType.startsWith("image/") || file.mimeType.startsWith("video/") ? (
+              {isVisualFile(file) ? (
                 <button
                   type="button"
                   aria-label={`Preview ${file.filename}`}
@@ -129,7 +131,9 @@ export function FileManager({
                 >
                   <FileVisual file={file} />
                 </button>
-              ) : null}
+              ) : (
+                <FileIcon file={file} />
+              )}
               <button type="button" className="min-w-0 flex-1 py-2 text-left" onClick={() => setPreview(file)}>
                 <p className="truncate text-sm font-medium">{file.filename}</p>
                 <p className="text-xs text-muted-foreground">{formatBytes(BigInt(file.sizeBytes))}</p>
@@ -177,6 +181,26 @@ function FileVisual({ file }: { file: FileDto }) {
   }
 
   return null;
+}
+
+function isVisualFile(file: FileDto) {
+  return file.mimeType.startsWith("image/") || file.mimeType.startsWith("video/");
+}
+
+function FileIcon({ file, large = false }: { file: FileDto; large?: boolean }) {
+  const Icon = file.mimeType.startsWith("audio/")
+    ? Music
+    : file.mimeType.includes("zip") || file.mimeType.includes("compressed")
+      ? FileArchive
+      : file.mimeType.startsWith("text/") || file.mimeType === "application/pdf"
+        ? FileText
+        : File;
+
+  return (
+    <div className={large ? "text-primary" : "flex h-12 w-14 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"}>
+      <Icon className={large ? "h-10 w-10" : "h-5 w-5"} aria-hidden="true" />
+    </div>
+  );
 }
 
 function FileActionSheet({

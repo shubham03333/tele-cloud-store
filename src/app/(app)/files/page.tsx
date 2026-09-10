@@ -10,7 +10,7 @@ export default async function FilesPage({
   return (
     <div>
       <TopBar title="Files" />
-      <FilesBrowser category="files" q={q} />
+      <FilesBrowser q={q} />
     </div>
   );
 }
