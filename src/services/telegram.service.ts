@@ -192,7 +192,11 @@ export class TelegramStorageService {
     return Buffer.from(data);
   }
 
-  async streamDownload(peer: TelegramPeer, messageId: number): Promise<ReadableStream<Uint8Array>> {
+  async streamDownload(
+    peer: TelegramPeer,
+    messageId: number,
+    range?: { start: number; length?: number },
+  ): Promise<ReadableStream<Uint8Array>> {
     const client = await this.connect();
     const messages = await client.getMessages(await this.resolveInputPeer(client, peer), { ids: messageId });
     const message = messages[0];
@@ -206,6 +210,7 @@ export class TelegramStorageService {
 
     const iterator = client.iterDownload({
       file: message.media,
+      ...(range ? { offset: bigInt(range.start), limit: range.length } : {}),
       requestSize: 512 * 1024,
       msgData: [peer.peerId, messageId],
     })[Symbol.asyncIterator]();

@@ -289,7 +289,7 @@ export class FileService {
     return hmacVerify(`${id}.${exp}`, sig, secret);
   }
 
-  async downloadStream(id: string) {
+  async downloadStream(id: string, range?: { start: number; length?: number }) {
     const file = await this.files.findById(id);
     if (!file || file.deleted) {
       throw new Error("File not found");
@@ -297,6 +297,7 @@ export class FileService {
     const stream = await this.telegram.streamDownload(
       { peerId: file.telegramPeerId, accessHash: file.channel.accessHash, username: file.channel.username },
       file.messageId,
+      range,
     );
     return { file, stream };
   }
