@@ -29,8 +29,6 @@ export async function POST(request: Request) {
   }
 }
 
-const idSchema = z.object({ sessionId: z.string().cuid() });
-
 export async function PATCH(request: Request) {
   try {
     await requireApiSession(request);
@@ -50,5 +48,3 @@ export async function PATCH(request: Request) {
     return jsonError(error);
   }
 }
-
-export { idSchema };

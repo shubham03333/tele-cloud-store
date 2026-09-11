@@ -16,6 +16,11 @@ const globalForTelegram = globalThis as unknown as {
   nimbusTelegramConnect?: Promise<TelegramClient>;
 };
 
+function isTransientTelegramConnectionError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /connection|disconnected|network|socket|timeout|AUTH_KEY_NOT_FOUND/i.test(message);
+}
+
 export class TelegramNotConfiguredError extends Error {
   constructor(message = "Telegram session is not configured") {
     super(message);
@@ -192,16 +197,8 @@ export class TelegramStorageService {
     onProgress?: (ratio: number) => void;
     abort?: { canceled: boolean };
   }): Promise<{ messageId: number; peerId: string; channelId: string }> {
-    const client = await this.connect();
+    let client = await this.connect();
     const channel = await this.resolvePeer(input.category);
-    const target = channel.username
-      ? await client.getInputEntity(channel.username)
-      : channel.accessHash
-        ? new Api.InputPeerChannel({
-            channelId: bigInt(channel.peerId),
-            accessHash: bigInt(channel.accessHash),
-          })
-        : await client.getInputEntity(channel.peerId);
     const customFile = new CustomFile(input.filename, input.sizeBytes, input.filePath);
 
     const onProgress = ((ratio: number) => {
@@ -214,13 +211,33 @@ export class TelegramStorageService {
       });
     }
 
-    const message = await client.sendFile(target, {
-      file: customFile,
-      caption: input.filename,
-      forceDocument: true,
-      workers: 4,
-      progressCallback: onProgress,
-    });
+    const send = async () => {
+      const target = channel.username
+        ? await client.getInputEntity(channel.username)
+        : channel.accessHash
+          ? new Api.InputPeerChannel({
+              channelId: bigInt(channel.peerId),
+              accessHash: bigInt(channel.accessHash),
+            })
+          : await client.getInputEntity(channel.peerId);
+      return client.sendFile(target, {
+        file: customFile,
+        caption: input.filename,
+        forceDocument: true,
+        workers: 4,
+        progressCallback: onProgress,
+      });
+    };
+
+    let message;
+    try {
+      message = await send();
+    } catch (error) {
+      if (!isTransientTelegramConnectionError(error)) throw error;
+      await this.disconnect();
+      client = await this.connect();
+      message = await send();
+    }
 
     if (!message) {
       throw new Error("Telegram did not return a message after upload");
